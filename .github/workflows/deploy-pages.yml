@@ -24,6 +24,16 @@ jobs:
           mkdir -p _site
           unzip -q xray_mirror_https_pages.zip -d _site
           test -s _site/index.html
+          cp medical-review.html _site/medical-review.html
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('_site/index.html')
+          html = p.read_text(encoding='utf-8')
+          link = '<a href="./medical-review.html" style="display:inline-block;background:#80d3ff;color:#06121c;padding:10px 14px;border-radius:9px;font-weight:700;text-decoration:none;margin:8px 0">Open Medical X-Ray Review</a>'
+          if 'medical-review.html' not in html:
+              html = html.replace('<body>', '<body>'+link, 1)
+          p.write_text(html,encoding='utf-8')
+          PY
           touch _site/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5
