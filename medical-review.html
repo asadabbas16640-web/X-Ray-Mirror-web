@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OPTUS X-Ray Mirror | Medical Image Review</title>
+<style>
+:root{color-scheme:dark;--bg:#080c15;--panel:#141d2b;--line:#334157;--accent:#80d3ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#edf3ff;font:15px/1.5 system-ui,Arial}
+header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+a{color:var(--accent)}main{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px;padding:14px;max-width:1500px;margin:auto}
+.viewer{background:#050505;min-height:55vh;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;touch-action:pan-y}
+#image{display:none;max-width:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(1);transform-origin:center;user-select:none;pointer-events:none}
+#marks{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+.empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#aab5c9;padding:24px;pointer-events:none}
+aside{display:grid;align-content:start;gap:12px}.panel{background:var(--panel);padding:14px;border:1px solid var(--line);border-radius:12px}
+label{display:block;margin:10px 0 5px}input[type=file]{width:100%;max-width:100%}input[type=range]{width:100%}
+button{background:#182739;color:white;border:1px solid #50647c;border-radius:8px;padding:9px 12px;cursor:pointer;margin:4px 4px 4px 0}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent)}
+button.primary{background:var(--accent);color:#091321;font-weight:700}
+small,.muted{color:#aab5c9}#annotations{padding-left:20px;max-height:180px;overflow:auto}
+.warn{background:#38272a;border:1px solid #80515b;padding:10px;border-radius:8px}
+@media(max-width:800px){main{grid-template-columns:1fr}.viewer{min-height:52vh}header{padding:12px}}
+</style></head><body>
+<header><a href="./index.html">← Live anatomy mirror</a><strong>Medical X-Ray Review</strong><small>Local image review • no upload to a server</small></header>
+<main><section><div class="viewer" id="viewer"><img id="image" alt="Original medical image, displayed without pixel alteration"><canvas id="marks"></canvas><div class="empty" id="empty"><h2>Open an X-ray image</h2><p>PNG, JPEG or WebP. Original pixels remain unchanged.<br>Click the image to add a manual review marker.</p></div></div>
+<p class="muted">The image is displayed in your browser only. Markers are a separate overlay and never modify the original file. This is not a diagnostic device.</p></section>
+<aside><div class="panel"><strong>1. Open original image</strong><label for="file">Choose an image file</label><input id="file" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"><p id="fileStatus" class="muted" role="status">No image selected.</p><small>DICOM (.dcm) and CT volumetric reconstruction are not supported in this initial viewer. Do not upload patient-identifiable images to a public repository.</small></div>
+<div class="panel"><strong>2. View controls</strong><label for="zoom">Zoom <output id="zoomValue">100%</output></label><input id="zoom" type="range" min="25" max="400" value="100" step="5"><button id="reset">Reset view</button><button id="original">Open original image</button></div>
+<div class="panel"><strong>3. Clinician review markers</strong><p class="muted">Tap a location on the image. These are manual notes, not AI findings.</p><label for="kind">Finding type</label><select id="kind"><option>Area for review</option><option>Suspected fracture — unconfirmed</option><option>Joint alignment concern — unconfirmed</option><option>Spinal level for clinical correlation</option></select><label for="note">Note</label><input id="note" placeholder="Clinical observation (optional)" maxlength="250" style="width:100%"><ol id="annotations"></ol><button id="undo">Undo marker</button><button id="clear">Clear markers</button><button id="export">Export review JSON</button></div>
+<div class="warn"><strong>Clinical safety</strong><p>Do not use this prototype to diagnose fractures, identify nerve compression, or guide treatment. X-rays cannot directly measure muscle pressure or nerve function. Review requires a qualified clinician and appropriate imaging.</p></div></aside></main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),file=$('file'),img=$('image'),viewer=$('viewer'),canvas=$('marks'),ctx=canvas.getContext('2d'),marks=[],status=$('fileStatus');
+let url=null,zoom=1;
+function geometry(){const w=viewer.clientWidth,h=viewer.clientHeight;const ratio=Math.min(w/img.naturalWidth,h/img.naturalHeight)*zoom;const iw=img.naturalWidth*ratio,ih=img.naturalHeight*ratio;return {x:(w-iw)/2,y:(h-ih)/2,w:iw,h:ih}}
+function redraw(){const dpr=devicePixelRatio||1;canvas.width=Math.round(viewer.clientWidth*dpr);canvas.height=Math.round(viewer.clientHeight*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,viewer.clientWidth,viewer.clientHeight);if(!img.naturalWidth)return;const g=geometry();img.style.width=g.w+'px';img.style.height=g.h+'px';img.style.transform='none';img.style.left=g.x+'px';img.style.top=g.y+'px';marks.forEach((m,i)=>{const x=g.x+m.x*g.w,y=g.y+m.y*g.h;ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.strokeStyle='#ffcf67';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#ffcf67';ctx.font='bold 14px system-ui';ctx.fillText(String(i+1),x+13,y-8)})}
+function listing(){$('annotations').replaceChildren();marks.forEach((m,i)=>{const li=document.createElement('li');li.textContent=(i+1)+'. '+m.kind+(m.note?' — '+m.note:'');$('annotations').append(li)});redraw()}
+file.addEventListener('change',()=>{const f=file.files[0];if(!f)return;if(!['image/png','image/jpeg','image/webp'].includes(f.type)){status.textContent='Unsupported format. Use PNG, JPEG or WebP.';return}if(f.size>60*1024*1024){status.textContent='Image exceeds 60 MB limit.';return}const next=URL.createObjectURL(f);img.onload=()=>{if(url)URL.revokeObjectURL(url);url=next;zoom=1;$('zoom').value=100;$('zoomValue').textContent='100%';marks.length=0;img.style.display='block';$('empty').style.display='none';status.textContent=f.name+' ('+img.naturalWidth+' × '+img.naturalHeight+')';listing()};img.onerror=()=>{URL.revokeObjectURL(next);status.textContent='Could not decode this image.'};img.src=next});
+$('zoom').addEventListener('input',e=>{zoom=Number(e.target.value)/100;$('zoomValue').textContent=e.target.value+'%';redraw()});
+$('reset').onclick=()=>{$('zoom').value=100;zoom=1;$('zoomValue').textContent='100%';redraw()};
+$('original').onclick=()=>{if(url)window.open(url,'_blank','noopener,noreferrer')};
+canvas.addEventListener('click',e=>{if(!img.naturalWidth)return;const g=geometry(),r=canvas.getBoundingClientRect(),x=(e.clientX-r.left-g.x)/g.w,y=(e.clientY-r.top-g.y)/g.h;if(x<0||x>1||y<0||y>1)return;marks.push({x:+x.toFixed(5),y:+y.toFixed(5),kind:$('kind').value,note:$('note').value.trim()});$('note').value='';listing()});
+$('undo').onclick=()=>{marks.pop();listing()};$('clear').onclick=()=>{marks.length=0;listing()};
+$('export').onclick=()=>{if(!img.naturalWidth)return;const data={type:'research-manual-review',image_name:file.files[0]?.name,image_width:img.naturalWidth,image_height:img.naturalHeight,markers:marks,disclaimer:'Unvalidated clinician notes, not a diagnosis'};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='xray-review.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+new ResizeObserver(redraw).observe(viewer);window.addEventListener('beforeunload',()=>{if(url)URL.revokeObjectURL(url)});
+})();
+</script></body></html>
