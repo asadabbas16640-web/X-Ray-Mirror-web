@@ -19,7 +19,7 @@ small,.muted{color:#aab5c9}#annotations{padding-left:20px;max-height:180px;overf
 .warn{background:#38272a;border:1px solid #80515b;padding:10px;border-radius:8px}
 @media(max-width:800px){main{grid-template-columns:1fr}.viewer{min-height:52vh}header{padding:12px}}
 </style></head><body>
-<header><a href="./index.html">← Live anatomy mirror</a><strong>Medical X-Ray Review</strong><small>Local image review • no upload to a server</small></header>
+<header><a href="./index.html">← Live anatomy mirror</a><a href="./dicom-review.html">Open DICOM viewer</a><a href="./full-body-lab.html">Full-body tracking lab</a><strong>Medical X-Ray Review</strong><small>Local image review • no upload to a server</small></header>
 <main><section><div class="viewer" id="viewer"><img id="image" alt="Original medical image, displayed without pixel alteration"><canvas id="marks"></canvas><div class="empty" id="empty"><h2>Open an X-ray image</h2><p>PNG, JPEG or WebP. Original pixels remain unchanged.<br>Click the image to add a manual review marker.</p></div></div>
 <p class="muted">The image is displayed in your browser only. Markers are a separate overlay and never modify the original file. This is not a diagnostic device.</p></section>
 <aside><div class="panel"><strong>1. Open original image</strong><label for="file">Choose an image file</label><input id="file" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"><p id="fileStatus" class="muted" role="status">No image selected.</p><small>DICOM (.dcm) and CT volumetric reconstruction are not supported in this initial viewer. Do not upload patient-identifiable images to a public repository.</small></div>
