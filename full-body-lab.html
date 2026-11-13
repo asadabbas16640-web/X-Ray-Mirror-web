@@ -77,10 +77,21 @@ function paintAnatomy(pts,w,h){
  }
  if(visible(0)){
   const nose=xy(0),headSize=Math.max(scale*2.8,shoulder*.21);
-  // The skull is deliberately schematic, not a reconstructed skull.
-  oval([nose[0],nose[1]-headSize*.65],headSize*.72,headSize,'#f2e8cf');
-  ctx.save();ctx.strokeStyle='#f2e8cf';ctx.lineWidth=Math.max(2,scale*.35);
-  ctx.beginPath();ctx.arc(nose[0],nose[1]+headSize*.2,headSize*.52,.12,Math.PI-.12);ctx.stroke();ctx.restore();
+  // Translucent frontal skull illustration: no opaque oval over the user's face.
+  const cx=nose[0],cy=nose[1]-headSize*.42;
+  ctx.save();ctx.shadowColor='#57d7ff';ctx.shadowBlur=10;
+  ctx.fillStyle='rgba(222,238,220,.14)';ctx.strokeStyle='#f5e6bc';ctx.lineWidth=Math.max(2,scale*.42);
+  ctx.beginPath();ctx.ellipse(cx,cy,headSize*.83,headSize*1.12,0,Math.PI*1.03,Math.PI*2.97);ctx.fill();ctx.stroke();
+  // Eye sockets, nasal aperture, cheekbones, jaw and teeth.
+  for(const sign of [-1,1]){
+   ctx.fillStyle='rgba(10,27,42,.24)';ctx.strokeStyle='#ffe6b3';
+   ctx.beginPath();ctx.ellipse(cx+sign*headSize*.36,cy+headSize*.12,headSize*.25,headSize*.19,sign*.12,0,Math.PI*2);ctx.fill();ctx.stroke();
+   ctx.beginPath();ctx.moveTo(cx+sign*headSize*.7,cy+headSize*.25);ctx.quadraticCurveTo(cx+sign*headSize*.82,cy+headSize*.52,cx+sign*headSize*.49,cy+headSize*.64);ctx.stroke();
+  }
+  ctx.beginPath();ctx.moveTo(cx,cy+headSize*.23);ctx.lineTo(cx-headSize*.13,cy+headSize*.55);ctx.lineTo(cx+headSize*.13,cy+headSize*.55);ctx.closePath();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-headSize*.65,cy+headSize*.62);ctx.quadraticCurveTo(cx-headSize*.58,cy+headSize*1.19,cx,cy+headSize*1.31);ctx.quadraticCurveTo(cx+headSize*.58,cy+headSize*1.19,cx+headSize*.65,cy+headSize*.62);ctx.stroke();
+  for(let j=-3;j<=3;j++){const x=cx+j*headSize*.15;ctx.beginPath();ctx.moveTo(x,cy+headSize*.83);ctx.lineTo(x,cy+headSize*.96);ctx.stroke();}
+  ctx.restore();
  }
  for(const i of [11,12,13,14,15,16,23,24,25,26,27,28])if(visible(i))oval(xy(i),scale*.48,scale*.48,'#f2e9d6');
 }
@@ -90,7 +101,7 @@ $('start').onclick=startCamera;
 $('switch').onclick=async()=>{facing=facing==='user'?'environment':'user';const wasActive=active;stop();$('status').textContent='Camera preference: '+(facing==='user'?'front':'back')+'.';if(wasActive)await startCamera()};
 function stop(){startupStage='stopped';active=false;cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;ctx.clearRect(0,0,canvas.width,canvas.height)}
 $('stop').onclick=()=>{stop();$('status').textContent='Camera stopped.'};
-function report(){const track=stream?.getVideoTracks()[0],settings=track?.getSettings?.()||{};return {page:'Full-Body Tracking Lab',build:'overlay-visibility-20261113',browser:navigator.userAgent,secureContext:window.isSecureContext,mediaDevices:!!navigator.mediaDevices?.getUserMedia,requestedCamera:facing,startupStage,cameraError:cameraError||null,trackingStartupError:trackingError||null,cameraActive:!!track&&track.readyState==='live',actualFacing:settings.facingMode||'unknown',videoWidth:video.videoWidth,videoHeight:video.videoHeight,trackerReady:!!tracker,framesAnalyzed:observedFrames,framesWithPose:detectedFrames,trackingError:lastError||null,modelLoaded:!!modelUrl,trackingLibrarySource:librarySource,overlayEnabled:$('anatomy').checked,canvasWidth:canvas.width,canvasHeight:canvas.height,canvasDisplay:getComputedStyle(canvas).display,checkedAt:new Date().toISOString()}}
+function report(){const track=stream?.getVideoTracks()[0],settings=track?.getSettings?.()||{};return {page:'Full-Body Tracking Lab',build:'transparent-skull-20261113',browser:navigator.userAgent,secureContext:window.isSecureContext,mediaDevices:!!navigator.mediaDevices?.getUserMedia,requestedCamera:facing,startupStage,cameraError:cameraError||null,trackingStartupError:trackingError||null,cameraActive:!!track&&track.readyState==='live',actualFacing:settings.facingMode||'unknown',videoWidth:video.videoWidth,videoHeight:video.videoHeight,trackerReady:!!tracker,framesAnalyzed:observedFrames,framesWithPose:detectedFrames,trackingError:lastError||null,modelLoaded:!!modelUrl,trackingLibrarySource:librarySource,overlayEnabled:$('anatomy').checked,canvasWidth:canvas.width,canvasHeight:canvas.height,canvasDisplay:getComputedStyle(canvas).display,checkedAt:new Date().toISOString()}}
 $('diagnose').onclick=()=>{$('diagnostics').textContent=JSON.stringify(report(),null,2)};
 $('copyReport').onclick=async()=>{const data=JSON.stringify(report(),null,2);$('diagnostics').textContent=data;try{await navigator.clipboard.writeText(data);$('status').textContent='Test report copied. No camera images included.'}catch(e){$('status').textContent='Copy unavailable; select the report text manually.'}};window.addEventListener('pagehide',stop);
 $('model').onchange=()=>{const f=$('model').files[0];if(!f)return;if(!f.name.toLowerCase().endsWith('.glb')||f.size>80*1024*1024){$('modelStatus').textContent='Select a self-contained .glb file under 80 MB.';return}if(modelUrl)URL.revokeObjectURL(modelUrl);modelUrl=URL.createObjectURL(f);$('modelViewer').src=modelUrl;$('modelStatus').textContent='Previewing '+f.name+'. The model is not yet aligned or rigged to camera tracking.'};window.addEventListener('pagehide',()=>{if(modelUrl)URL.revokeObjectURL(modelUrl)});
