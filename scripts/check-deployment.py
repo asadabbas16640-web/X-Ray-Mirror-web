@@ -6,6 +6,12 @@ import subprocess
 import tempfile
 
 ROOT=Path('_site')
+import hashlib
+reference=ROOT/'original-reference.html'
+assert reference.is_file(), 'Original source reference missing'
+expected='b5e12cd0755ac0976e655c4f9ac914c2a7a6b54474455d66549cbdfa6511dfb0'
+actual=hashlib.sha256(reference.read_bytes()).hexdigest()
+assert actual==expected, 'Original X-Ray Mirror source has changed unexpectedly'
 PAGES=['index.html','medical-review.html','dicom-review.html','ct-series.html','ct-3d.html','full-body-lab.html','anatomy-3d.html']
 class Parser(HTMLParser):
     def __init__(self):
