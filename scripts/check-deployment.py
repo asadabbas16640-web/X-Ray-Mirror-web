@@ -19,7 +19,7 @@ class Parser(HTMLParser):
         if a.get('id'):
             if a['id'] in self.ids: raise AssertionError(f'duplicate id: {a["id"]}')
             self.ids.add(a['id'])
-        if tag=='script' and not a.get('src'):
+        if tag=='script' and not a.get('src') and a.get('type','').lower() in ('','text/javascript','application/javascript','module'):
             self.current={'module':a.get('type')=='module','text':''}
             self.scripts.append(self.current)
         if tag=='a' and a.get('href','').startswith('./'):
